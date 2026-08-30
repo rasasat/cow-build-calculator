@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call of War — Build & Economy Calculator</title>
+<meta name="description" content="Plan army and building costs and compare them to nation daily production for Call of War scenarios.">
+<script>
+  // Auto cache-bust: load CSS fresh every visit (no incognito needed)
+  (function () {
+    var l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.href = "styles.css?t=" + Date.now();
+    document.head.appendChild(l);
+  })();
+</script>
+<noscript><link rel="stylesheet" href="styles.css"></noscript>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <div class="brand">
+      <span class="brand-mark">⚔️</span>
+      <div>
+        <h1>Call of War — Build Calculator</h1>
+        <p class="tagline">Army &amp; building costs · nation economy · days to afford</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs wrap" role="tablist">
+  <button class="tab active" data-tab="calc" role="tab">🛠️ Build Cost</button>
+  <button class="tab" data-tab="economy" role="tab">📊 Nation Economy</button>
+  <button class="tab" data-tab="about" role="tab">ℹ️ About</button>
+</nav>
+
+<main class="wrap">
+
+  <!-- ===================== BUILD COST ===================== -->
+  <section id="calc" class="panel active">
+    <div class="grid">
+      <!-- left: pickers + list -->
+      <div class="col-main">
+        <div class="card">
+          <div class="card-head">
+            <h2>Your build order</h2>
+            <div class="faction-pick">
+              <label for="faction">Doctrine</label>
+              <select id="faction"></select>
+            </div>
+          </div>
+
+          <div class="adder">
+            <div class="adder-row">
+              <select id="add-kind" class="kind-select">
+                <option value="unit">Unit</option>
+                <option value="building">Building</option>
+              </select>
+              <select id="add-type" class="type-select"></select>
+              <select id="add-level" class="level-select"></select>
+              <input id="add-qty" class="qty-input" type="number" min="1" value="1" aria-label="Quantity">
+              <button id="add-btn" class="btn primary">Add</button>
+            </div>
+          </div>
+
+          <div id="empty-hint" class="empty-hint">
+            No items yet. Pick a unit or building above and press <b>Add</b> to start planning.
+          </div>
+
+          <table id="items-table" class="items-table hidden">
+            <thead>
+              <tr>
+                <th>Item</th><th class="num">Qty</th>
+                <th class="num">🍞</th><th class="num">⚙️</th><th class="num">🛢️</th><th class="num">👥</th><th class="num">💰</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="items-body"></tbody>
+          </table>
+
+          <div class="list-actions">
+            <button id="clear-btn" class="btn ghost hidden">Clear all</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- right: totals + affordability -->
+      <div class="col-side">
+        <div class="card totals-card">
+          <h2>Total cost</h2>
+          <ul class="totals">
+            <li><span class="res-ico">🍞</span><span class="res-name">Food</span><span id="t-food" class="res-val">0</span></li>
+            <li><span class="res-ico">⚙️</span><span class="res-name">Metal</span><span id="t-metal" class="res-val">0</span></li>
+            <li><span class="res-ico">🛢️</span><span class="res-name">Oil</span><span id="t-oil" class="res-val">0</span></li>
+            <li><span class="res-ico">👥</span><span class="res-name">Manpower</span><span id="t-manpower" class="res-val">0</span></li>
+            <li class="money"><span class="res-ico">💰</span><span class="res-name">Money</span><span id="t-money" class="res-val">0</span></li>
+          </ul>
+          <p class="units-count"><span id="t-units">0</span> items total</p>
+        </div>
+
+        <div class="card afford-card">
+          <h2>Days to afford</h2>
+          <p class="muted small">Compare this build to a nation's daily production.</p>
+          <div class="afford-picks">
+            <label>Scenario<select id="af-scenario"></select></label>
+            <label>Nation<select id="af-nation"></select></label>
+          </div>
+          <div id="afford-result" class="afford-result muted">Pick a scenario and nation.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ECONOMY ===================== -->
+  <section id="economy" class="panel">
+    <div class="card">
+      <div class="card-head">
+        <h2>Nation daily production</h2>
+        <div class="econ-controls">
+          <div class="faction-pick">
+            <label for="ec-faction">Doctrine</label>
+            <select id="ec-faction">
+              <option value="">All</option>
+              <option value="Axis">Axis</option>
+              <option value="Ally">Ally</option>
+              <option value="Commintern">Commintern</option>
+              <option value="Pan-Asian">Pan-Asian</option>
+            </select>
+          </div>
+          <div class="faction-pick">
+            <label for="ec-scenario">Scenario</label>
+            <select id="ec-scenario"></select>
+          </div>
+          <div class="faction-pick hidden" id="ec-role-wrap">
+            <label for="ec-role">Show</label>
+            <select id="ec-role">
+              <option value="">All countries</option>
+              <option value="playable">Playable only</option>
+              <option value="ai">AI only</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <p class="muted small" id="ec-meta"></p>
+      <div class="table-scroll">
+        <table class="items-table econ-table">
+          <thead>
+            <tr>
+              <th data-sort="nation">Nation</th>
+              <th data-sort="faction">Doctrine</th>
+              <th class="num" data-sort="money">💰 Money</th>
+              <th class="num" data-sort="manpower">👥 Manpower</th>
+              <th class="num" data-sort="food">🍞 Food</th>
+              <th class="num" data-sort="metal">⚙️ Metal</th>
+              <th class="num" data-sort="oil">🛢️ Oil</th>
+            </tr>
+          </thead>
+          <tbody id="econ-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ABOUT ===================== -->
+  <section id="about" class="panel">
+    <div class="card prose">
+      <h2>About this calculator</h2>
+      <p>A planning tool for <b>Call of War</b>. Two data sets power it:</p>
+      <ul>
+        <li><b>Build costs</b> — every unit (37 types across 4 doctrines — Allies, Axis, Comintern, Pan-Asian — plus base stats, levels 1–7) and building, with Food, Metal, Oil, Manpower and Money costs.</li>
+        <li><b>Nation economy</b> — each nation's average <em>daily resource production</em> at game start, across 10 scenarios.</li>
+      </ul>
+      <p class="muted small">The original spreadsheets are included in the repo under <code>/source</code>.</p>
+      <h3>How to use it</h3>
+      <ol>
+        <li>Pick your <b>doctrine</b>, then add units and buildings with their level and quantity.</li>
+        <li>Watch the <b>total cost</b> update live.</li>
+        <li>Choose a scenario + nation under <b>Days to afford</b> to see how long your economy needs to pay for the build — the slowest resource is your bottleneck.</li>
+      </ol>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">Built as a fan tool · <span id="year"></span> · Data is approximate</div>
+</footer>
+
+<script>
+  // Auto cache-bust: load data + app fresh every visit, in order
+  (function () {
+    var t = Date.now();
+    ["data.js", "app.js"].forEach(function (src) {
+      var s = document.createElement("script");
+      s.src = src + "?t=" + t;
+      s.async = false;
+      document.body.appendChild(s);
+    });
+  })();
+</script>
+</body>
+</html>
